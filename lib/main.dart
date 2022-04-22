@@ -85,17 +85,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     MaterialButton(
                       onPressed: () async {
-                        print((1 << 16).toString() + "d");
-                        print((1 << 2).toString() + "d");
-                        print((1 << 3).toString() + "d");
-
                         try {
                           img.Image? image;
 
                           setState(() {
                             listofColorWidgets = [];
                             processingData = true;
-                            progressMade = 0;
                           });
 
                           await _cameraController
