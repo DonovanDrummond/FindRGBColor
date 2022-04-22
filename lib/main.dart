@@ -112,7 +112,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                 item, Size(ColorWidgetSize, ColorWidgetSize)));
                           }
 
-                          print("done");
                           setState(() {
                             processingData = false;
                           });
