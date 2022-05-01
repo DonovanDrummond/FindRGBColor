@@ -1,3 +1,7 @@
+import 'dart:developer';
+import 'dart:ffi';
+import 'package:path/path.dart';
+
 import 'Dependencies.dart';
 import 'package:image/image.dart' as img;
 
@@ -10,7 +14,7 @@ void main() async {
       theme: ThemeData.dark(),
       home: MyHomePage(
         camera: cameras.first,
-        title: "Cam",
+        title: "World RGB",
       ),
     ),
   );
@@ -27,139 +31,202 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+double progressMadevalue = 0.0;
+
 class _MyHomePageState extends State<MyHomePage> {
   late CameraController _cameraController;
-  List<ShowImageColorWidget> listofColorWidgets = [];
+  ColorViewType viewType = ColorViewType.Default;
   List<Color> ListofColor = [];
-  static double ColorWidgetSize = 100;
   Uint8List? imageInMemory;
   bool processingData = false;
-  double progressMade = 0.0;
-
+  img.Image? image;
   @override
   void initState() {
     super.initState();
-    _cameraController = CameraController(widget.camera, ResolutionPreset.max);
+    _cameraController = CameraController(widget.camera, ResolutionPreset.low);
   }
 
   @override
   void dispose() {
-    _cameraController.dispose();
     super.dispose();
+    _cameraController.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
-        ),
-        body: processingData
-            ? Center(
-                child: CircularProgressIndicator(),
-              )
-            : Center(
+    setState(() {});
+    return processingData
+        ? Scaffold(
+            body: Center(
                 child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    child: Center(
-                      child: FutureBuilder(
-                        future: _cameraController.initialize(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.done) {
-                            return CameraPreview(_cameraController);
-                          } else {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    color: Colors.blue,
-                    width: MediaQuery.of(context).size.width * .5,
-                    height: MediaQuery.of(context).size.height * .5,
-                  ),
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    MaterialButton(
-                      onPressed: () async {
-                        try {
-                          img.Image? image;
-
-                          setState(() {
-                            listofColorWidgets = [];
-                            processingData = true;
-                          });
-
-                          await _cameraController
-                              .takePicture()
-                              .then((value) async {
-                            image = img.decodeImage(await value.readAsBytes());
-                            for (var y = 0; y < image!.height; y++) {
-                              for (var x = 0; x < image!.width; x++) {
-                                int pixel = image!.getPixelSafe(x, y);
-                                int b = (pixel >> 16) & 0xFF;
-                                int r = (pixel & 0xFF) << 16;
-                                addDifferentColor(
-                                    Color((pixel & 0xFF00FF00) | b | r));
-                              }
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+            ],
+          )))
+        : Scaffold(
+            appBar: AppBar(actions: [
+              SafeArea(
+                child: Container(
+                  alignment: Alignment.centerLeft,
+                  child: Text("${viewType.name} View"),
+                ),
+              )
+            ]),
+            drawer: Drawer(
+                child: SafeArea(
+              child: Column(
+                children: [..._DrawerItems(context)],
+              ),
+            )),
+            body: Center(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                  Center(
+                    child: Stack(children: [
+                      Container(
+                        height: MediaQuery.of(context).size.height * .85,
+                        width: MediaQuery.of(context).size.width,
+                        child: FutureBuilder(
+                          future: _cameraController.initialize(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.done) {
+                              return CameraPreview(_cameraController);
+                            } else {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
                             }
-                          });
-                          for (var item in ListofColor) {
-                            listofColorWidgets.add(ShowImageColorWidget(
-                                item, Size(ColorWidgetSize, ColorWidgetSize)));
-                          }
+                          },
+                        ),
+                      ),
+                      Positioned(
+                        bottom: MediaQuery.of(context).size.width * .000001,
+                        left: MediaQuery.of(context).size.width * .35,
+                        child: MaterialButton(
+                          onPressed: () async {
+                            try {
+                              setState(() {
+                                processingData = true;
+                              });
 
-                          setState(() {
-                            processingData = false;
-                          });
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => ShowAllColors(
-                                        ListOfColorWidgets: listofColorWidgets,
-                                      )));
-                        } catch (e) {
-                          print(e);
-                        }
-                      },
-                      child: Container(
-                        width: MediaQuery.of(context).size.width * .2,
-                        height: MediaQuery.of(context).size.height * .1,
-                        margin: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(5)),
-                            border: Border.all(width: 1)),
-                        child: const Text(
-                          "Take Picture",
-                          softWrap: true,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.black,
+                              await _cameraController
+                                  .takePicture()
+                                  .then((value) async {
+                                image =
+                                    img.decodeImage(await value.readAsBytes());
+                              });
+
+                              ListofColor.addAll(
+                                  await compute(_imagePixelProcessing, image!));
+
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => ShowAllColors(
+                                            ListOfColor: ListofColor,
+                                            TypeOfColorViews: viewType,
+                                          )));
+                              setState(() {
+                                processingData = false;
+                              });
+                            } catch (e) {
+                              log(e.toString());
+                            }
+                          },
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * .2,
+                            height: MediaQuery.of(context).size.height * .1,
+                            margin: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(5)),
+                                border: Border.all(width: 1)),
+                            child: const Center(
+                              child: Text(
+                                "Take Picture",
+                                softWrap: true,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    // if (imageInMemory != null)
-                    //   Container(
-                    //     width: MediaQuery.of(context).size.width * .1,
-                    //     height: MediaQuery.of(context).size.height * .1,
-                    //     margin: const EdgeInsets.all(5),
-                    //     child: Image.memory(imageInMemory!),
-                    //   ),
-                  ]),
-                ],
-              )));
+                    ]),
+                  )
+                ])));
   }
 
-  void addDifferentColor(Color temp) {
-    if (ListofColor.contains(temp)) {
-      return;
+  List<Widget> _DrawerItems(BuildContext context) {
+    List<Widget> drawerItems = [];
+    List<Widget> _resolutionDropdown = [];
+    for (var item in ResolutionPreset.values) {
+      _resolutionDropdown.add(MaterialButton(
+          child: Container(
+              height: MediaQuery.of(context).size.height * .04,
+              color: Colors.white,
+              child: Center(
+                  child: Text("${item.name}",
+                      style: const TextStyle(color: Colors.black)))),
+          onPressed: () => setState(() {
+                _cameraController = CameraController(widget.camera, item);
+              })));
     }
-    ListofColor.add(temp);
+    drawerItems.add(ExpansionTile(
+      title: const Text("Resolution Quailty"),
+      children: [..._resolutionDropdown],
+    ));
+    drawerItems.add(ExpansionTile(
+      title: const Text("View Color Type"),
+      children: [
+        MaterialButton(
+            child: Container(
+                height: MediaQuery.of(context).size.height * .04,
+                color: Colors.white,
+                child: const Center(
+                    child: Text("General",
+                        style: TextStyle(color: Colors.black)))),
+            onPressed: () => setState(() {
+                  viewType = ColorViewType.general;
+                })),
+        MaterialButton(
+            child: Container(
+                height: MediaQuery.of(context).size.height * .04,
+                color: Colors.white,
+                child: const Center(
+                    child:
+                        Text("Normal", style: TextStyle(color: Colors.black)))),
+            onPressed: () => setState(() {
+                  viewType = ColorViewType.Default;
+                })),
+      ],
+    ));
+
+    return drawerItems;
   }
+}
+
+List<Color> _imagePixelProcessing(img.Image theImage) {
+  List<Color> listColorbuffer = [];
+  for (var y = 0; y < theImage.height; y++) {
+    for (var x = 0; x < theImage.width; x++) {
+      int temp = theImage.getPixelSafe(x, y);
+      int b = (temp >> 16) & 0xFF;
+      int r = (temp & 0xFF) << 16;
+      Color bcolor = Color((temp & 0xFF00FF00) | b | r);
+      if (listColorbuffer.contains(bcolor) == false) {
+        listColorbuffer.add(bcolor);
+      }
+    }
+
+    progressMadevalue = ((y / theImage.height * 100).toInt() & 0x7f).toDouble();
+  }
+
+  return listColorbuffer;
 }

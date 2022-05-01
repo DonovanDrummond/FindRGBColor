@@ -30,8 +30,6 @@ dependencies:
   flutter:
     sdk: flutter
   camera:
-  path_provider:
-  path:
   convert: ^3.0.1
 
   
