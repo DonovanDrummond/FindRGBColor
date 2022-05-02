@@ -62,6 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(),
+              Text("% $progressMadevalue")
             ],
           )))
         : Scaffold(
@@ -69,7 +70,8 @@ class _MyHomePageState extends State<MyHomePage> {
               SafeArea(
                 child: Container(
                   alignment: Alignment.centerLeft,
-                  child: Text("${viewType.name} View"),
+                  child: Text(
+                      "Quality: ${_cameraController.resolutionPreset.name} / ViewType: ${viewType.name} View"),
                 ),
               )
             ]),
@@ -118,9 +120,18 @@ class _MyHomePageState extends State<MyHomePage> {
                                 image =
                                     img.decodeImage(await value.readAsBytes());
                               });
+                              progressMadevalue = 0;
+                              for (var i = 0; i < image!.height; i++) {
+                                ImageAnPixelHeight temp =
+                                    new ImageAnPixelHeight(i, image!);
 
-                              ListofColor.addAll(
-                                  await compute(_imagePixelProcessing, image!));
+                                ListofColor.addAll(
+                                    await compute(_imagePixelProcessing, temp));
+                                progressMadevalue =
+                                    ((i / image!.height * 100).toInt() & 0x7f)
+                                        .toDouble();
+                                setState(() {});
+                              }
 
                               Navigator.push(
                                   context,
@@ -212,20 +223,23 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-List<Color> _imagePixelProcessing(img.Image theImage) {
-  List<Color> listColorbuffer = [];
-  for (var y = 0; y < theImage.height; y++) {
-    for (var x = 0; x < theImage.width; x++) {
-      int temp = theImage.getPixelSafe(x, y);
-      int b = (temp >> 16) & 0xFF;
-      int r = (temp & 0xFF) << 16;
-      Color bcolor = Color((temp & 0xFF00FF00) | b | r);
-      if (listColorbuffer.contains(bcolor) == false) {
-        listColorbuffer.add(bcolor);
-      }
-    }
+class ImageAnPixelHeight {
+  int height;
+  img.Image image;
+  ImageAnPixelHeight(this.height, this.image);
+}
 
-    progressMadevalue = ((y / theImage.height * 100).toInt() & 0x7f).toDouble();
+List<Color> _imagePixelProcessing(ImageAnPixelHeight t) {
+  List<Color> listColorbuffer = [];
+
+  for (var x = 0; x < t.image!.width; x++) {
+    int temp = t.image!.getPixelSafe(x, t.height);
+    int b = (temp >> 16) & 0xFF;
+    int r = (temp & 0xFF) << 16;
+    Color bcolor = Color((temp & 0xFF00FF00) | b | r);
+    if (listColorbuffer.contains(bcolor) == false) {
+      listColorbuffer.add(bcolor);
+    }
   }
 
   return listColorbuffer;
