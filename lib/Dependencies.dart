@@ -1,6 +1,5 @@
 //import page
 export 'dart:typed_data';
-export 'package:findcolors/ShowAllColors.dart';
 export 'package:camera/camera.dart';
 export 'package:flutter/material.dart';
 export 'dart:async';
@@ -8,6 +7,8 @@ export 'dart:io';
 export 'package:flutter/foundation.dart';
 //pages
 export 'main.dart';
+export 'ShowWhereOnImage.dart';
+export 'ShowAllColors.dart';
 
 import 'package:flutter/material.dart';
 
@@ -60,13 +61,4 @@ Widget ColorWidget(Color PassColor) {
   );
 }
 
-enum ColorViewType {
-  Default,
-  general,
-}
-
-class Position {
-  double x;
-  double y;
-  Position([this.x = 0, this.y = 0]);
-}
+enum ColorViewType { Default, general, carousal }

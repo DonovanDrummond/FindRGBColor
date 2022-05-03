@@ -13,7 +13,6 @@ class ShowAllColors extends StatefulWidget {
 }
 
 class _ShowAllColorsState extends State<ShowAllColors> {
-  late List<Widget> DrawerItems = [_DrawerColorView, _DrawerGeneralColorView];
   List<Widget> listofColorWidgets = [];
   @override
   Widget build(BuildContext context) {
@@ -24,11 +23,11 @@ class _ShowAllColorsState extends State<ShowAllColors> {
       case ColorViewType.general:
         {
           return Scaffold(
-              appBar: AppBar(),
+              appBar: defaultAppBar,
               drawer: Drawer(
                   child: SafeArea(
                 child: Column(
-                  children: [...DrawerItems],
+                  children: [..._DrawerItems],
                 ),
               )),
               body: SafeArea(
@@ -39,14 +38,35 @@ class _ShowAllColorsState extends State<ShowAllColors> {
                 ),
               ));
         }
+      case ColorViewType.carousal:
+        {
+          return Scaffold(
+            appBar: defaultAppBar,
+            drawer: Drawer(
+                child: SafeArea(
+              child: Column(
+                children: [..._DrawerItems],
+              ),
+            )),
+            body: Center(
+              child: Container(
+                  child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  return CarouselWidget(index);
+                },
+              )),
+            ),
+          );
+        }
       default:
         {
           return Scaffold(
-              appBar: AppBar(),
+              appBar: defaultAppBar,
               drawer: Drawer(
                   child: SafeArea(
                 child: Column(
-                  children: [...DrawerItems],
+                  children: [..._DrawerItems],
                 ),
               )),
               body: SafeArea(
@@ -56,6 +76,58 @@ class _ShowAllColorsState extends State<ShowAllColors> {
               ));
         }
     }
+  }
+
+  AppBar get defaultAppBar {
+    return AppBar(
+      actions: [
+        MaterialButton(
+          onPressed: (() => setState(() {
+                Navigator.pop(context);
+              })),
+          child: const Text("BACK"),
+        ),
+      ],
+    );
+  }
+
+  Widget CarouselWidget(int index) {
+    return FittedBox(
+      fit: BoxFit.fill,
+      child: Container(
+        height: MediaQuery.of(context).size.height * .9,
+        width: MediaQuery.of(context).size.width * .9,
+        margin: EdgeInsets.only(left: 1, right: 1),
+        color: widget.ListOfColor[index],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Red: " + widget.ListOfColor[index].red.toString(),
+              style: TextStyle(
+                  color: widget.ListOfColor[index].value <= 0xFF7FFFFF
+                      ? Colors.white
+                      : Colors.black),
+            ),
+            Text(
+              "Green: " + widget.ListOfColor[index].green.toString(),
+              style: TextStyle(
+                  color: widget.ListOfColor[index].value <= 0xFF7FFFFF
+                      ? Colors.white
+                      : Colors.black),
+            ),
+            Text(
+              "Blue: " + widget.ListOfColor[index].blue.toString(),
+              style: TextStyle(
+                  color: widget.ListOfColor[index].value <= 0xFF7FFFFF
+                      ? Colors.white
+                      : Colors.black),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   List<Widget> get GeneralColorWidgetSorter {
@@ -122,21 +194,25 @@ class _ShowAllColorsState extends State<ShowAllColors> {
     return temp;
   }
 
-  Widget get _DrawerGeneralColorView {
-    return MaterialButton(
-      onPressed: () => setState(() {
-        this.widget.TypeOfColorViews = ColorViewType.general;
-      }),
-      child: Container(child: Text("General")),
-    );
-  }
+  List<Widget> get _DrawerItems {
+    List<Widget> drawerItems = [];
+    drawerItems.add(ExpansionTile(
+      title: const Text("View Color Type"),
+      children: [
+        for (ColorViewType item in ColorViewType.values)
+          MaterialButton(
+              child: Container(
+                  height: MediaQuery.of(context).size.height * .04,
+                  color: Colors.white,
+                  child: Center(
+                      child: Text("${item.name}",
+                          style: TextStyle(color: Colors.black)))),
+              onPressed: () => setState(() {
+                    this.widget.TypeOfColorViews = item;
+                  })),
+      ],
+    ));
 
-  Widget get _DrawerColorView {
-    return MaterialButton(
-      onPressed: () => setState(() {
-        this.widget.TypeOfColorViews = ColorViewType.Default;
-      }),
-      child: Container(child: Text("Regular")),
-    );
+    return drawerItems;
   }
 }

@@ -1,9 +1,6 @@
 import 'dart:developer';
-import 'dart:ffi';
-import 'package:path/path.dart';
-
-import 'Dependencies.dart';
 import 'package:image/image.dart' as img;
+import 'Dependencies.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +33,7 @@ double progressMadevalue = 0.0;
 class _MyHomePageState extends State<MyHomePage> {
   late CameraController _cameraController;
   ColorViewType viewType = ColorViewType.Default;
-  List<Color> ListofColor = [];
+  List<List<Color>> ListofColor = [];
   Uint8List? imageInMemory;
   bool processingData = false;
   img.Image? image;
@@ -111,21 +108,23 @@ class _MyHomePageState extends State<MyHomePage> {
                           onPressed: () async {
                             try {
                               setState(() {
+                                progressMadevalue = 0;
                                 processingData = true;
                               });
-
+                              Image? picture;
                               await _cameraController
                                   .takePicture()
                                   .then((value) async {
                                 image =
                                     img.decodeImage(await value.readAsBytes());
+                                picture =
+                                    Image.memory(await value.readAsBytes());
                               });
-                              progressMadevalue = 0;
                               for (var i = 0; i < image!.height; i++) {
                                 ImageAnPixelHeight temp =
                                     new ImageAnPixelHeight(i, image!);
 
-                                ListofColor.addAll(
+                                ListofColor.add(
                                     await compute(_imagePixelProcessing, temp));
                                 progressMadevalue =
                                     ((i / image!.height * 100).toInt() & 0x7f)
@@ -136,9 +135,11 @@ class _MyHomePageState extends State<MyHomePage> {
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => ShowAllColors(
+                                      builder: (context) => ShowWhereOnImage(
+                                            thePicture: picture!,
                                             ListOfColor: ListofColor,
                                             TypeOfColorViews: viewType,
+                                            theImage: image!,
                                           )));
                               setState(() {
                                 processingData = false;
@@ -196,26 +197,17 @@ class _MyHomePageState extends State<MyHomePage> {
     drawerItems.add(ExpansionTile(
       title: const Text("View Color Type"),
       children: [
-        MaterialButton(
-            child: Container(
-                height: MediaQuery.of(context).size.height * .04,
-                color: Colors.white,
-                child: const Center(
-                    child: Text("General",
-                        style: TextStyle(color: Colors.black)))),
-            onPressed: () => setState(() {
-                  viewType = ColorViewType.general;
-                })),
-        MaterialButton(
-            child: Container(
-                height: MediaQuery.of(context).size.height * .04,
-                color: Colors.white,
-                child: const Center(
-                    child:
-                        Text("Normal", style: TextStyle(color: Colors.black)))),
-            onPressed: () => setState(() {
-                  viewType = ColorViewType.Default;
-                })),
+        for (ColorViewType item in ColorViewType.values)
+          MaterialButton(
+              child: Container(
+                  height: MediaQuery.of(context).size.height * .04,
+                  color: Colors.white,
+                  child: Center(
+                      child: Text("${item.name}",
+                          style: TextStyle(color: Colors.black)))),
+              onPressed: () => setState(() {
+                    viewType = item;
+                  })),
       ],
     ));
 
@@ -229,11 +221,11 @@ class ImageAnPixelHeight {
   ImageAnPixelHeight(this.height, this.image);
 }
 
-List<Color> _imagePixelProcessing(ImageAnPixelHeight t) {
+List<Color> _imagePixelProcessing(ImageAnPixelHeight tempImageData) {
   List<Color> listColorbuffer = [];
 
-  for (var x = 0; x < t.image!.width; x++) {
-    int temp = t.image!.getPixelSafe(x, t.height);
+  for (var x = 0; x < tempImageData.image.width; x++) {
+    int temp = tempImageData.image.getPixelSafe(x, tempImageData.height);
     int b = (temp >> 16) & 0xFF;
     int r = (temp & 0xFF) << 16;
     Color bcolor = Color((temp & 0xFF00FF00) | b | r);
